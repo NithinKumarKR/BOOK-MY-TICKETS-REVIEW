@@ -1,4 +1,6 @@
 import numpy as np
+import streamlit as st
+
 import tensorflow as tf
 from tensorflow.keras.datasets import imdb
 from tensorflow.keras.preprocessing import sequence
@@ -22,13 +24,11 @@ def preprocessing_text(text):
 
 def predict(review):
   preprocessed_review=preprocessing_text(review)
-  prediction=model.predict(preprocessed_review)
+  prediction=model.predict(preprocessed_review)[0][0]
   if prediction>0.5:
-    return 'POSITIVE' ,prediction[0][0]
+    return 'POSITIVE' , prediction
   else:
-    return 'NEGATIVE' ,prediction[0][0]
-
-op=predict(review)
+    return 'NEGATIVE' , prediction
 
 st.title('BOOK MY TICKETS')
 
@@ -40,24 +40,16 @@ star_options = [1, 2, 3, 4, 5]
 
 stars = st.selectbox('Please rate the movie:', star_options)
 
+op=predict(message)
+
 if not message:  # Check if message is empty
     if stars > 2:
-        op = 'POSITIVE'
+        op = ('POSITIVE',stars)
     else:
-        op = 'NEGATIVE'
+        op = ('NEGATIVE' ,stars)
         
 st.write(f"You selected: {movie}")
 st.write(f"Your message: {message}")
 st.write(f"Your stars: {stars}")
 st.write(f"Your review: {op[0]}")
 st.write(f"Your rating: {op[1]}")
-
-
-
-
-
-
-
-
-
-
