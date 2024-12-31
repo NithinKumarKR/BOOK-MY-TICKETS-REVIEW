@@ -1,97 +1,58 @@
-import streamlit as st
 import numpy as np
 import tensorflow as tf
-from sklearn.preprocessing import StandardScaler ,LabelEncoder , OneHotEncoder
-from tensorflow.keras.models import load_model
-import pandas as pd
-import pickle
+from tensorflow.keras.datasets import imdb
+from tensorflow.keras.preprocessing import sequence
+from tensorflow.keras.layers import Embedding, LSTM, Dense, SimpleRNN
+from tensorflow.keras.models import Sequential ,load_model
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+
+word_index=imdb.get_word_index()
+reverse_word_index=dict([(value,key) for (key,value) in word_index.items()])
+
+model=load_model('simple_rnn_model.h5')
+
+def decode_review(text):
+    return ' '.join([reverse_word_index.get(i-3,'?') for i in text])
+
+def preprocessing_text(text):
+    words=text.lower().split()
+    encoded_review=[word_index.get(word,2)+3 for word in words]
+    padded_review=pad_sequences([encoded_review],maxlen=250)
+    return padded_review
+
+def predict(review):
+  preprocessed_review=preprocessing_text(review)
+  prediction=model.predict(preprocessed_review)
+  if prediction>0.5:
+    return 'POSITIVE' ,prediction[0][0]
+  else:
+    return 'NEGATIVE' ,prediction[0][0]
+
+op=predict(review)
+
+st.title('BOOK MY TICKETS')
+
+movie= st.selectbox('Please select the movie',['UI','Robert','MAX','Martin','PUSHPA'])
+
+message = st.text_area('Enter your message about the movie:')
+
+star_options = [1, 2, 3, 4, 5]  
+
+stars = st.selectbox('Please rate the movie:', star_options)
+
+if not message:  # Check if message is empty
+    if stars > 2:
+        op = 'POSITIVE'
+    else:
+        op = 'NEGATIVE'
+        
+st.write(f"You selected: {movie}")
+st.write(f"Your message: {message}")
+st.write(f"Your stars: {stars}")
+st.write(f"Your review: {op[0]}")
+st.write(f"Your rating: {op[1]}")
 
 
-##load All th model
-model=load_model('model.h5')
-with open('gender_LabelEncoder.pkl','rb') as f:
-    gender_LabelEncoder=pickle.load(f)
-with open('geo_encoder.pkl','rb') as f:
-    geo_encoder=pickle.load(f)
-with open('card_type_encoder.pkl','rb') as f:
-    card_type_encoder=pickle.load(f)
-with open('scaler.pkl','rb') as f:
-    scaler=pickle.load(f)
-
-st.title('Customer Churn Prediction')
-
-geography= st.selectbox('Geography', geo_encoder.categories_[0])
-gender= st.selectbox('Gender', gender_LabelEncoder.classes_)
-card_type= st.selectbox('Card Type', card_type_encoder.categories_[0])
-age= st.slider('Age',18,92)
-balance=st.number_input('Balance')
-credit=st.slider('Credit Score',0,900)
-Salary=st.number_input('Salary')
-tenure= st.slider('Tenure',0,50)
-products= st.slider('Product',0,10)
-HasCrCard=st.selectbox('HasCrCard', [0,1])
-IsActiveMember=st.selectbox('IsActiveMember', [0,1])
-Complain=st.selectbox('Complain', [0,1])
-Satisfaction=st.slider('Satisfaction',0,10)
-Point=st.slider('Point Earned',0,1000)
-
-
-input= {
- 'CreditScore': credit,
- 'Geography': geography,
- 'Gender': gender,
- 'Age': age,
- 'Tenure': tenure,
- 'Balance': balance ,
- 'NumOfProducts': products,
- 'HasCrCard': HasCrCard,
- 'IsActiveMember': IsActiveMember,
- 'EstimatedSalary':Salary,
- 'Complain': HasCrCard,
- 'Satisfaction Score': Satisfaction,
- 'Card Type': card_type,
- 'Point Earned':Point}
-
-input_df=pd.DataFrame([input])
-card_type_encoded=card_type_encoder.transform([[input['Card Type']]]).toarray()
-
-card_type_encoded_df = pd.DataFrame(
-    card_type_encoded,
-    columns=card_type_encoder.get_feature_names_out(['Card Type']))
-card_type_encoded_df = card_type_encoded_df.head(1).to_dict(orient='records')[0]
-
-card_type_encoded=card_type_encoder.transform([[input['Card Type']]]).toarray()
-card_type_encoded_df = pd.DataFrame(
-    card_type_encoded,
-    columns=card_type_encoder.get_feature_names_out(['Card Type']))
-
-
-input_df['Gender']=gender_LabelEncoder.transform(input_df['Gender'])
-input_df=input_df.drop('Card Type', axis=1)
-
-
-geo_encoded=geo_encoder.transform([[input['Geography']]]).toarray()
-geo_encoded_df = pd.DataFrame(
-    geo_encoded,
-    columns=geo_encoder.get_feature_names_out(['Geography']))
-
-input_df=input_df.drop('Geography', axis=1)
-
-input_df=pd.concat([input_df,geo_encoded_df,card_type_encoded_df],axis=1)
-
-
-input_df_scaled=scaler.transform(input_df)
-
-st.title('Customer Churn Prediction Output')
-
-st.write("Thank you for giving your inputs")
-
-pred=model.predict(input_df_scaled)
-
-if pred[0][0]>.5:
-    st.write("Customer will leave the bank",pred[0][0]) 
-else:
-    st.write("Customer will not leave the bank",pred[0][0]) 
 
 
 
